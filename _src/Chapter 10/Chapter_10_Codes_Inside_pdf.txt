@@ -1,0 +1,57 @@
+----------------------------------------------------------------------------------------------------------------------------------------------------
+Bulk upload of initial large dataset
+How to do it...
+
+LOAD CSV WITH HEADERS FROM  "file:///tmp/MOCK_DATA.csv" as line CREATE (p:Person { id: toInt(line.id), name: line.first_name, email: line.email, country: line.country })
+
+LOAD CSV WITH HEADERS FROM  "file:///tmp/MOCK_DATA.csv" as line CREATE (p:Person { id: toInt(line.id), name: line.first_name, email: line.email, country: line.country }) CREATE(e:Email {email : line.email }) CREATE(c:Country {country : line.country }) CREATE (e)-[:EMAIL_OF]->(p) CREATE (c)-[:COUNTRY_OF]->(p)
+
+LOAD CSV WITH HEADERS FROM  "file:///tmp/MOCK_DATA.csv" as line CREATE (p:Person { id: toInt(line.id), name: line.first_name, email: line.email, country: line.country }) CREATE(e:Email {email : line.email }) MERGE(c:Country {country : line.country }) CREATE (e)-[:EMAIL_OF]->(p) CREATE (c)-[:COUNTRY_OF]->(p)
+
+LOAD CSV WITH HEADERS FROM  "file:///tmp/MOCK_DATA.csv" as line CREATE (p:Person { id: toInt(line.id), name: line.first_name }) FOREACH(ignoreMe IN CASE WHEN trim(line.email) <> "" THEN [1] ELSE [] END | SET p.email = line.email) 
+
+LOAD CSV WITH HEADERS FROM  "file:///tmp/MOCK_DATA.csv" as line CREATE (p:Person { id: toInt(line.id), name: line.first_name }) FOREACH(ignoreMe IN CASE WHEN trim(line.email) <> "" THEN [1] ELSE [] END | SET p.email = line.email) FOREACH(ignoreMe IN CASE WHEN trim(line.email) <> "" THEN [1] ELSE [] END | CREATE (e:email {email : line.email }) )
+
+CREATE INDEX ON :Person(name)
+CREATE INDEX ON :Country(country)
+
+CREATE CONSTRAINT ON (e:Email) ASSERT e.email IS UNIQUE;
+
+
+./generate.sh
+
+TestDataGenerator nodes=1000000 relsPerNode=50 relTypes=KNOWS,FOLLOWS propsPerNode=5 propsPerRel=2
+
+./import.sh -db-directory graph.db -nodes sample/nodes.csv -rels sample/rels.csv
+
+cp –r graph.db $NEO4J_ROOT/data
+$NEO4J_ROOT/bin/neo4j restart
+
+
+----------------------------------------------------------------------------------------------------------------------------------------------------
+High Availability setup
+How to do it...
+
+org.neo4j.server.webserver.address=0.0.0.0
+org.neo4j.server.database.mode=HA
+
+ha.server_id = 1
+ha.intitial_hosts = <node1ip:5001>,<node2ip:5001>
+
+ha.server_id = 2
+ha.intitial_hosts = <node1ip:5001>,<node2ip:5001>
+
+neo4j-01$ ./bin/neo4j start
+neo4j-02$ ./bin/neo4j start
+
+----------------------------------------------------------------------------------------------------------------------------------------------------
+Optimizing Cypher Query for performance
+How to do it...
+
+MATCH (u:User)-[:works]->(c:company)
+WHERE u.id=123
+  AND (i)-[:related_to]->(abc)
+RETURN i
+
+----------------------------------------------------------------------------------------------------------------------------------------------------
+

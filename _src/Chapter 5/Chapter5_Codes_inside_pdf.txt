@@ -1,0 +1,259 @@
+---------------------------------------------------------------------------------------------------------------------------------------------------
+Finding mutual friends with Neo4j
+Getting ready
+
+CREATE
+    (bradley:User {name:'Bradley', surname:'Green', age:24, 
+city:'Los Angeles'}),
+    (matthew:User {name:'Matthew', surname:'Cooper', age:36, 
+city:'Los Angeles'}),
+    (lisa:User {name:'Lisa', surname:'Adams', age:15, 
+city:'New York'}),
+    (annie:User {name:'Annie', surname:'Behr', age:25, 
+city:'Chicago'}),
+    (ripley:User {name:'Ripley', surname:'Aniston', city:'Los 
+Angeles'}),
+    (john:User {name:'John', surname:'Goodman', age:34, 
+city:'New York'}),
+    (amy:User {name:'Amy', surname:'Cooper', age:22}),
+    (mark:User {name:'Mark', surname:'McAdams', age:17, 
+city:'Los Angeles'}),
+    (dennis:User {name:'Dennis', surname:'Lemon', age:42, 
+city:'Los Angeles'}),
+//FRIEND
+    (bradley)-[:FRIEND]->(matthew),
+    (bradley)-[:FRIEND]->(ripley),
+    (bradley)-[:FRIEND]->(john),
+    (matthew)-[:FRIEND]->(bradley),
+    (lisa)-[:FRIEND]->(matthew),
+    (lisa)-[:FRIEND]->(annie),
+    (annie)-[:FRIEND]->(lisa),
+    (annie)-[:FRIEND]->(matthew),
+    (annie)-[:FRIEND]->(ripley)
+
+MATCH (a)-[:`FRIEND`]->(b) RETURN a,b
+---------------------------------------------------------------------------------------------------------------------------------------------------
+How to do it...
+
+MATCH pMutualFriends=(me)-[:FRIEND]->(mf)<-[:FRIEND]-(other) 
+where me.name = "Annie" and other.name = "Lisa" RETURN mf.name
+
+MATCH pMutualFriends=(me)-[:FRIEND]->(mf)<-[:FRIEND]-(other) 
+where me.name = "Annie" RETURN other.name,count(mf) ORDER BY 
+count(mf) DESC
+
+OPTIONAL MATCH pMutualFriends=(me)-[:FRIEND]->(mf)<-[:FRIEND]-(other) RETURN me.name AS Friend1,other.name AS 
+Friend2, count(mf) AS Count ORDER BY count(mf) DESC LIMIT 2
+---------------------------------------------------------------------------------------------------------------------------------------------------
+How it works...
+MATCH pMutualFriends=(me)-[:FRIEND]->(mf)<-[:FRIEND]-(other) where 
+me.name = "Annie" and other.name = "Lisa" RETURN mf.name
+
+---------------------------------------------------------------------------------------------------------------------------------------------------
+Finding friend of friend with Neo4j
+Getting ready
+CREATE
+(music:Interest {name : 'music'}),
+(sports:Interest {name : 'sports'}),
+(dance:Interest {name : 'dance'}),
+//INTEREST
+    (bradley)-[:INTEREST]->(music),
+    (bradley)-[:INTEREST]->(dance),
+    (john)-[:INTEREST]->(dance),
+    (matthew)-[:INTEREST]->(sports),
+    (lisa)-[:INTEREST]->(music),
+    (lisa)-[:INTEREST]->(dance),
+    (annie)-[:INTEREST]->(sports),
+    (annie)-[:INTEREST]->(music),
+    (ripley)-[:INTEREST]->(music),
+    (ripley)-[:INTEREST]->(dance),
+    (amy)-[:INTEREST]->(sports),
+    (amy)-[:INTEREST]->(dance),
+    (mark)-[:INTEREST]->(music),
+    (mark)-[:INTEREST]->(dance)
+---------------------------------------------------------------------------------------------------------------------------------------------------
+How to do it...
+MATCH pMutualFriends=(me { name: 'Annie' })-[:FRIEND*2..2]->(foaf)
+WHERE NOT (me)-[:FRIEND]-(foaf) AND NOT me=foaf
+RETURN foaf.name, COUNT(*)
+ORDER BY COUNT(*) DESC , foaf.name
+
+MATCH (me { name: 'Bradley' })-[:INTEREST]->(stuff)<-[:INTEREST]-(new_friend)
+WHERE NOT (me)-[:friend]-(new_friend)
+RETURN new_friend.name, count(stuff)
+ORDER BY count(stuff) DESC LIMIT 3
+
+MATCH (me { name: 'Bradley' })-[:VISITED]->(stuff)<-[: VISITED]-(new_friend)
+WHERE NOT (me)-[:friend]-(new_friend)
+RETURN new_friend.name, count(stuff)
+ORDER BY count(stuff) DESC LIMIT 3
+
+MATCH (me { name: 'Bradley' })-[:FRIEND]->(mf)-[:FRIEND]->(new_friend)
+WHERE NOT (me)-[:friend]-(new_friend) AND (me.age <= 1.1 * 
+new_friend.age AND me.age >= new_friend.age)
+RETURN new_friend.name,new_friend.age,me.age LIMIT 3
+
+MATCH pMutualFriends=(me { name: 'Annie' })-[:FRIEND*2..2]->(foaf)
+WHERE NOT (me)-[:FRIEND]-(foaf) AND (me.age <= 1.1 * foaf.age 
+AND me.age >= foaf.age) AND NOT me=foaf
+RETURN foaf.name, COUNT(*)
+ORDER BY COUNT(*) DESC , foaf.name
+---------------------------------------------------------------------------------------------------------------------------------------------------
+How it works...
+MATCH pMutualFriends=(me { name: 'Annie' })-[:FRIEND*2..2]->(foaf)
+WHERE NOT (me)-[:FRIEND]-(foaf) AND NOT me=foaf
+RETURN foaf.name, COUNT(*)
+ORDER BY COUNT(*) DESC , foaf.name
+
+RETURN foaf.name, COUNT(*)
+ORDER BY COUNT(*) DESC , foaf.name
+
+MATCH (me { name: 'Bradley' })-[:VISITED]->(stuff)<-[: VISITED]-(new_friend)
+WHERE NOT (me)-[:friend]-(new_friend)
+RETURN new_friend.name, count(stuff)
+ORDER BY count(stuff) DESC LIMIT 3
+---------------------------------------------------------------------------------------------------------------------------------------------------
+Activity streaming with Neo4j
+Getting ready
+//STATUS
+(st1:Status { text : 'I am sleeping', date:'1234'}),
+(st2:Stautus { text : 'Going to ibiza', date:'1345'}),
+(st3:Status { text : 'Added mark as friend', date:'1695'}),
+(st4:Status { text : 'Going to college', date:'1700'}),
+(st5:Stautus { text : 'Eating pizza', date:'1567'})
+(st6:Status { text : 'drinking coffee', date:'2000'}),
+// STATUS Updates
+(bradley)-[:STATUS]->(st1),
+(bradley)-[:STATUS]->(st2),
+(matthew)-[:STATUS]->(st3),
+(lisa)-[:STATUS]->(st4),
+(lisa)-[:STATUS]->(st5),
+(annie)-[:STATUS]->(st6),
+---------------------------------------------------------------------------------------------------------------------------------------------------
+How to do it...
+MATCH (me { name: 'Annie' })-[:FRIEND]->(my_friend)-[:STATUS]-(status_posted)
+RETURN my_friend.name,status_posted.text,status_posted.date 
+ORDER BY status_posted.date DESC LIMIT 1
+
+
+MATCH (me { name: 'Annie' })-[:FRIEND]->(my_friend)-[:STATUS]-(status_posted)
+RETURN my_friend.name,status_posted.text,status_posted.date 
+ORDER BY status_posted.date SKIP 1 LIMIT 2
+
+MATCH (me { name: 'Bradley' })-[:INTEREST]->(stuff)<-[:INTEREST]-(new_friend)
+WHERE NOT (me)-[:friend]-(new_friend)
+WITH new_friend
+MATCH (new_friend)-[:STATUS]-(status_posted)
+RETURN new_friend.name,status_posted.text,status_posted.date 
+ORDER BY status_posted.date DESC LIMIT 2
+
+
+MATCH (me { name: 'Annie' })-[rels:FRIEND*0..1]-(myfriend)
+WHERE ALL (r IN rels WHERE r.status = 'CONFIRMED')
+WITH myfriend
+MATCH (myfriend)-[:STATUS]-(latestupdate)-[:NEXT*0..1]-(status_posted)
+RETURN myfriend.name AS name, status_posted.date AS date, 
+status_posted.text AS text
+ORDER BY status_posted.date DESC LIMIT 1
+
+MATCH (me)
+WHERE me.name='Annie'
+OPTIONAL MATCH (me)-[r:STATUS]-(secondlastupdate)
+DELETE r
+CREATE (me)-[:STATUS]->(latest_update { text:'Status',date:123 })
+WITH latest_update, collect(secondlastupdate) AS seconds
+FOREACH (x IN seconds | CREATE latest_update-[:NEXT]->x)
+RETURN latest_update.text AS new_status
+---------------------------------------------------------------------------------------------------------------------------------------------------
+How it works...
+MATCH (me { name: 'Annie' })-[:FRIEND]->(my_friend)-[:STATUS]-
+(status_posted)
+RETURN my_friend.name,status_posted.text,status_posted.date ORDER 
+BY status_posted.date DESC LIMIT 1
+
+MATCH (me { name: 'Bradley' })-[:INTEREST]->(stuff)<-[:INTEREST]-
+(new_friend)
+WHERE NOT (me)-[:friend]-(new_friend)
+WITH new_friend
+
+OPTIONAL MATCH (me)-[r:STATUS]-(secondlastupdate)
+
+CREATE (me)-[:STATUS]->(latest_update { text:'Status',date:123 })
+WITH latest_update, collect(secondlastupdate) AS seconds
+FOREACH (x IN seconds | CREATE latest_update-[:NEXT]->x)
+---------------------------------------------------------------------------------------------------------------------------------------------------
+Finding user similarity with Neo4j
+Getting ready
+//Places
+(pl1:Place { type: 'Disco'}),
+(pl2:Place { type : 'Coffee bar'}),
+(pl3:Place { type : 'Church'}),
+(pl4:Place { type : 'College'}),
+(pl5:Place { type : 'pizza Corner'}),
+(pl6:Place { type : 'Stadium'}),
+//VISITED
+(Bradley)-[:VISITED {times:5} ]-> (pl1),
+(Bradley)-[:VISITED {times:1} ]-> (pl3)
+---------------------------------------------------------------------------------------------------------------------------------------------------
+How to do it...
+MATCH (me { name: 'Bradley' })-[r1:VISITED]->(place)<-
+[r2:VISITED]-(you {name: 'Lisa'})
+RETURN SUM(ABS(r1.times-r2.times)) as Similarity
+
+MATCH (me { name: 'Bradley' })-[r1:VISITED]->(place)<-[r2:VISITED]-(you)
+WITH SUM(ABS(r1.times-r2.times)) as Similarity,you,me RETURN you.name,me.name, Similarity ORDER BY Similarity LIMIT 3
+
+MATCH (p1:User)-[x:RATED]->(m:Place)<-[y:RATED]-(p2:User)
+WITH SUM(x.rating * y.rating) AS dp,
+SQRT(REDUCE(xDot = 0.0, a IN COLLECT(x.rating) | xDot + a^2)) AS xLength,
+SQRT(REDUCE(yDot = 0.0, b IN COLLECT(y.rating) | yDot + b^2)) AS yLength,
+p1, p2
+CREATE UNIQUE (p1)-[s:SIMILARITY]-(p2)
+SET s.similarity = dp / (xLength * yLength)
+RETURN p1,p2
+
+MATCH (p1:User)-[s:SIMILARITY]-(p2:User)
+WITH p2, s.similarity AS sim
+ORDER BY sim DESC
+LIMIT 5
+RETURN p2.name AS User, sim AS Score
+
+MATCH (b:User)-[r:RATED]->(m:Place), (b)-[s:SIMILARITY]-
+(a:User {name:'Lisa'})
+WHERE NOT((a)-[:RATED]->(m))
+WITH m, s.similarity AS similarity, r.rating AS rating
+ORDER BY m.name, similarity DESC
+WITH m.name AS place, COLLECT(rating)[0..3] AS ratings
+WITH place, REDUCE(s = 0, i IN ratings | s + i)*1.0 / 
+LENGTH(ratings) AS reco
+ORDER BY reco DESC
+RETURN place AS Place, reco AS Recommendation
+---------------------------------------------------------------------------------------------------------------------------------------------------
+Network reachability with Neo4j
+
+CREATE
+    (bradley:User {name:'Bradley', surname:'Green', age:24, 
+city:'Los Angeles'}),
+    (matthew:User {name:'Matthew', surname:'Cooper', age:36, 
+city:'Los Angeles'}),
+    (lisa:User {name:'Lisa', surname:'Adams', age:15, 
+city:'New York'}),
+    (annie:User {name:'Annie', surname:'Behr', age:25,})
+    (disjoint:User{name:'Andy', surname:'Leone', age:47, 
+city:'Los Angeles'}),
+//FRIEND
+    (bradley)-[:FRIEND]->(matthew),
+    (bradley)-[:FRIEND]->(ripley),
+    (bradley)-[:FRIEND]->(john),
+    (matthew)-[:FRIEND]->(bradley)
+---------------------------------------------------------------------------------------------------------------------------------------------------
+How to do it...
+MATCH (a {name:'Annie'})-[:FRIEND*..]->(b) where NOT a=b 
+RETURN count(DISTINCT(b))
+
+MATCH (a {name:'Annie'})-[:FRIEND*..]->(b) where NOT a=b 
+RETURN DISTINCT(b.name)
+---------------------------------------------------------------------------------------------------------------------------------------------------
+How it works...
+MATCH (a {name:'Annie'})-[:FRIEND*..]->(b)
+---------------------------------------------------------------------------------------------------------------------------------------------------

@@ -1,0 +1,333 @@
+------------------------------------------------------------------------------------------------------------------------------------------------------
+Accessing Neo4j from the command line using the Neo4j shell
+How to do it...
+${NEO4J_ROOT}/bin/neo4j-shell  –h
+
+${NEO4J_ROOT}/bin/neo4j-shell
+
+$ ./neo4j start
+
+------------------------------------------------------------------------------------------------------------------------------------------------------
+Accessing Neo4j from the command line using curl
+$ ./neo4j start
+
+$ curl -H Accept:application/json -H Content-Type:application/json -v http://localhost:7474/db/data/
+
+$ curl -X POST -H Accept:application/json -v http://localhost:7474/db/data/node
+
+$ curl -X POST -H Accept:application/json -H Content-Type:application/json -d '{"name":"Neo4j"}' -v http://localhost:7474/db/data/node
+
+$ curl -X POST -H Accept:application/json -H Content-Type:application/json -d '{"name":"Neo4j","type":"Graph Database"}' -v http://localhost:7474/db/data/node
+
+$ curl -H Accept:application/json -H Content-Type:application/json  http://localhost:7474/db/data/node/16
+$ curl -X DELETE  -v http://localhost:7474/db/data/node/16
+
+$ curl -X POST -H Accept:application/json -H Content-Type:application/json -d '{"name":"A"}' -v http://localhost:7474/db/data/node
+$ curl -X POST -H Accept:application/json -H Content-Type:application/json -d '{"name":"B"}' -v http://localhost:7474/db/data/node
+$ curl -X POST -H Accept:application/json -H Content-Type:application/json -d '{"to":"http://localhost:7474/db/data/node/1","type":"KNOWS"}' -v http://localhost:7474/db/data/node/2/relationships
+
+$ curl -H Accept:application/json -H Content-Type:application/json  http://localhost:7474/db/data/node/2/relationships/all
+------------------------------------------------------------------------------------------------------------------------------------------------------
+Accessing Neo4j from the Java libraries
+How to do it...
+embed = new GraphDatabaseFactory().newEmbeddedDatabase( NEO4J_DB_PATH );
+
+Node node = embed.createNode();
+node.setProperty("name","Neo4j");
+node.setProperty("Message","Hello World");
+
+System.out.print( node.getProperty( "name" ) );
+System.out.print( node.getProperty( "message" ) );
+
+node.delete();
+
+node1 = embed.createNode();
+node1.setProperty("name","A"); 
+node2 = embed.createNode();
+node2.setProperty("name","B");
+rel = node1.createRelationshipTo( node2, RelTypes.KNOWS );
+rel.setProperty("type","Friend");
+
+$ ./neo4j start
+------------------------------------------------------------------------------------------------------------------------------------------------------
+Developing your own Neo4j REST client
+
+final String ROOT_URI = "http://localhost:7474/db/data/";
+final String nodeEntry = ROOT_URI + "node";
+WebResource res = Client.create().resource( nodeEntry );
+ClientResponse res = resource.accept( MediaType.APPLICATION_JSON )
+  .type( MediaType.APPLICATION_JSON )
+  .entity( "{}" )
+  .post( ClientResponse.class );
+URI loc = res.getLocation();
+res.close();
+------------------------------------------------------------------------------------------------------------------------------------------------------
+Using Java Neo4j Rest binding
+
+Transaction tr = neo4j_db.beginTx();
+Map<String,Object> pr=new HashMap<String, Object>();
+pr.put("id",1);
+pr.put("name","A");
+Node n=neo4j_db.createNode(props);
+tr.success();
+tr.finish();
+------------------------------------------------------------------------------------------------------------------------------------------------------
+Mapping Neo4j to Java annotated classes using Spring Data Neo4j
+Getting ready
+
+<dependency>
+  <groupId>org.springframework.data</groupId>
+  <artifactId>spring-data-neo4j</artifactId>
+  <version>2.3.1.RELEASE</version>
+</dependency>
+<repositories>
+  <repository>
+    <id>spring-neo4j</id>
+    <name>Spring Neo4j Data </name>
+    <url>http://maven.springframework.org/milestone </url>
+  </repository>
+</repositories>
+
+<build>
+  <plugins>
+    <plugin>
+      <groupId>org.pactkpub.cookbook</groupId>
+      <artifactId>aspectj-maven-plugin</artifactId>
+      <version>1.1</version>
+      <configuration>
+        <aspectLibrary>
+          <groupId>org.springframework</groupId>
+          <artifactId>springneo4j-aspects</artifactId>
+        </aspectLibrary>
+        <aspectLibrary>
+          <groupId>org.springframework.data</groupId>
+          <artifactId>spring-neo4j</artifactId>
+        </aspectLibrary>
+        <source>1.6</source>
+        <target>1.6</target>
+      </configuration>
+      <executions>
+        <execution>
+          <goals>
+            <goal>test-compile</goal>
+            <goal>compile</goal>
+          </goals>
+        </execution>
+      </executions>
+      <dependencies>
+        <dependency>
+          <groupId>org.aspectj</groupId>
+          <artifactId>aspectjrt</artifactId>
+          <version>1.7.11.RELEASE</version>
+        </dependency>
+        <dependency>
+          <groupId>org.aspectj</groupId>
+          <artifactId>aspectjtools</artifactId>
+          <version>1.7.11.RELEASE</version>
+        </dependency>
+      </dependencies>
+    </plugin>
+  </plugins>
+</build>
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?> 
+  <beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:context="http://www.springframework.org/schema/context"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:neo4j="http://www.springframework.org/schema/data/neo4j"
+    xsi:schemaLocation="
+      http://www.springframework.org/schema/beans
+      http://www.springframework.org/schema/beans/spring-beans.xsd
+      http://www.springframework.org/schema/context
+      http://www.springframework.org/schema/context/spring-context.xsd
+      http://www.springframework.org/schema/data/neo4j
+  http://www.springframework.org/schema/data/neo4j/spring-neo4j.xsd">
+    <context:annotation-config/>
+    <neo4j:config storeDirectory="target/config-test"/>
+</beans>
+------------------------------------------------------------------------------------------------------------------------------------------------------
+How to do it...
+
+@
+NodeEntity
+public class Movie {
+  @
+  Indexed
+  private string movie_name;
+  @
+  GraphId Long movie_id;
+  @
+  RelatedTo(type = "acts_in", direction = Direction.INCOMING, elementClass = Actor.class)
+  @ NodeEntity
+  public class Actor {
+    @
+    Indexed
+    private string actor_name;
+    @
+    GraphId Long actor_id;
+    @
+    RelatedTo(type = "acts_in", direction = Direction.OUTGOING, elementClass = Movie.class)
+------------------------------------------------------------------------------------------------------------------------------------------------------
+Accessing embedded Neo4j from Python 
+Getting ready
+$ sudo apt-get install python-jpype
+
+$ pip install neo4j-embedded
+$ easy_install  neo4j-embedded
+------------------------------------------------------------------------------------------------------------------------------------------------------
+How to do it...
+
+import neo4j 
+db_obj =  neo4j.GraphDatabase(DB_PATH)
+# All write operations on graph database happens in transaction
+with db_obj.transaction:
+  node = db_obj.node(name="neo4j")
+
+  
+import neo4j
+db_obj =  neo4j.GraphDatabase(DB_PATH)
+# All write operations on graph database happens in transaction
+with db_obj.transaction:
+  node1 = db_obj.node(name="A")
+  node2 = db_obj.node(name="B")
+  rel = node1.knows(node2,name="friend")
+db_obj.shutdown()
+------------------------------------------------------------------------------------------------------------------------------------------------------
+Accessing Neo4j from Python using REST bindings
+Getting ready
+
+$ pip install py2neo
+$ easy_install py2neo
+------------------------------------------------------------------------------------------------------------------------------------------------------
+How to do it...
+from py2neo import neo4j
+graph = neo4j.GraphDatabaseService(ENDPOINT_URL)
+graph.create(node(name="A")
+
+from py2neo import neo4j
+graph = neo4j.Graph(ENDPOINT_URL)
+graph.create(node(name="A"), node(name="B"))
+rel(1, "PLAYS WITH", 2)
+rel(2, "FATHER OF", 1)
+
+------------------------------------------------------------------------------------------------------------------------------------------------------
+Annotate Python object model to Neo4j graph database
+Getting ready
+$ pip install neomodel
+$ easy_install neomodel
+
+export NEO4J_REST_URL="http://<ip:port>/db/data
+------------------------------------------------------------------------------------------------------------------------------------------------------
+How to do it...
+from neomodel import (StructuredNode, StringProperty, IntegerProperty,RelationshipTo, RelationshipFrom)
+class Movie(StructuredNode):
+    name = StringProperty(unique_index=True, required=True)
+    actors = RelationshipFrom('Actor', 'ACTED_IN')
+class Actor(StructuredNode):
+    name = StringProperty(unique_index=True, required=True)
+    acted = RelationshipTo('Movie', 'ACTED_IN')
+
+	
+titanic = Movie(name="Titanic").save()
+
+leo = Actor(name="Leonardo DiCaprio").save()
+kate = Actor(name="Kate Winslet").save()
+
+Leo.acted.connect(titanic)
+Kate.acted.connect(titanic)
+------------------------------------------------------------------------------------------------------------------------------------------------------
+Accessing embedded Neo4j from Ruby
+
+How to do it...
+
+node = Neo4j::Node.create({name: 'neo'}, :hero, :human)
+puts "Created node #{node[:name]} with labels #{node.labels.join(', ')}"
+
+n1 = Neo4j::Node.create 
+n2 = Neo4j::Node.create 
+rel = n1.create_rel(:knows, n2, since: 2015)
+------------------------------------------------------------------------------------------------------------------------------------------------------
+Accessing Neo4j from Ruby using the REST Bindings
+Getting ready
+gem install 'neography'
+
+@graph = Neography::Rest.new({ :protocol   => 'http://',
+                               :server     => IP_ADDRESS,
+                               :port       => PORT,
+})
+------------------------------------------------------------------------------------------------------------------------------------------------------
+How to do it...
+node1 = @graph.create_node("name" => "A")
+node2 = @graph.create_node("name" => "B")
+@graph.create_relationship("mother of",node1,node2)
+@graph.create_relationship("daughter of",node2,node1)
+
+@graph.execute_query("start n=node(10) return n")
+
+@graph.batch [:create_node, {"location" => "A"}],
+           [:create_node, {"college" => "B"}]
+------------------------------------------------------------------------------------------------------------------------------------------------------
+Accessing Neo4j from Scala
+How to do it...
+
+import dispatch._
+val http_client = new Http
+val json = http_client(:/("localhost:7474/data/db/) /  "node/1")
+
+
+val node1 = graph.addV()
+node1.setProperty("name", "A")
+val node2 = graph.addV()
+node2.setProperty("name", "B")
+graph.addE(node1,node2,"Friend of")
+------------------------------------------------------------------------------------------------------------------------------------------------------
+Accessing Neo4j from .Net
+How to do it...
+
+# Installing the Package
+Install-Package Neo4jClient
+# Key class is GraphClient
+var c = new GraphClient(new Uri(REST_API_ENDPOINT));
+c.Connect();
+------------------------------------------------------------------------------------------------------------------------------------------------------
+Getting ready
+echo '{"require":{"everyman/neo4jphp":"dev-master"}}' > composer.json && composer install
+
+require("vendor/autoload.php")
+------------------------------------------------------------------------------------------------------------------------------------------------------
+How to do it…
+
+<?php
+  require('vendor/autoload.php');
+  $client = new Everyman\Neo4j\Client ('localhost', 7474);
+print_r($client->getServerInfo());
+
+$arthur = $client->makeNode();
+$arthur->setProperty('name', 'Arthur Dent')
+    ->setProperty('mood', 'nervous')
+    ->setProperty('home', 'small cottage')
+    ->save();
+------------------------------------------------------------------------------------------------------------------------------------------------------
+Accessing Neo4j from Node.js
+Getting ready
+Npm install neo4j
+
+var neo4j = require('neo4j');
+------------------------------------------------------------------------------------------------------------------------------------------------------
+How to do it…
+
+var neo4j = require('neo4j');
+var db = new neo4j.GraphDatabase('http://localhost:7474');
+
+
+var node = db.createNode({hello: 'world'}); 
+node.save(function (err, node) { 
+if (err) {
+console.error('Error saving new node to database:', err);
+    } else {
+        console.log('Node saved to database with id:', node.id);
+    }
+});
+
+
+------------------------------------------------------------------------------------------------------------------------------------------------------

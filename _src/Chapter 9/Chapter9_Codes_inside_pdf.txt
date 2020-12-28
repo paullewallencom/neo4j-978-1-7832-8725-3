@@ -1,0 +1,73 @@
+---------------------------------------------------------------------------------------------------------------------------------------------------
+Deploying Neo4j over the Heroku Cloud
+How to do it...
+heroku apps:create <your_app_name>
+
+heroku addons:add graphenedb --app neo4jcookbook
+
+heroku addons:add graphenedb:chalk --app neo4jcookbook
+
+heroku addons:open graphenedb:chalk
+
+heroku config –app neo4jcookbook
+---------------------------------------------------------------------------------------------------------------------------------------------------
+Backup with Neo4j
+Getting ready
+online_backup_enabled=true
+online_backup_server=ip:port
+---------------------------------------------------------------------------------------------------------------------------------------------------
+Neo4j backup with Community Edition
+#Backup script for taking Neo4j backup
+NEO4J_ROOT="/var/lib/neo4j"
+mkdir -p /mnt/backup
+$NEO4J_ROOT/bin/neo4j stop
+cp -r $NEO4J_ROOT/data/graph.db "/mnt/backup/neo4j_backup.$(date +%y-%m-%d)"
+$NEO4J_ROOT/bin/neo4j start
+---------------------------------------------------------------------------------------------------------------------------------------------------
+Neo4j backup with Enterprise Edition
+mkdir /mnt/backup/neo4j
+$NEO4J_ROOT/bin/ neo4j-backup -host 10.16.10.94 -to /mnt/backup/neo4j
+---------------------------------------------------------------------------------------------------------------------------------------------------
+Upgrading Neo4j to the latest Version
+How to do it...
+tail -f $NEO4J_ROOT/data/log/messages.log
+---------------------------------------------------------------------------------------------------------------------------------------------------
+
+Neo4j remote debugging setup
+How to do it...
+# Java Additional Parameters
+wrapper.java.additional.1=-Dorg.neo4j.server.properties=conf/neo4j-server.properties
+wrapper.java.additional.2=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005 \
+-Xdebug-Xnoagent-Djava.compiler=NONE\
+-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005
+
+./bin/neo4j restart
+---------------------------------------------------------------------------------------------------------------------------------------------------
+Configuring secure access to your Neo4j instance
+How to do it...
+conf/neo4j-server.propertiesorg.neo4j.server.webserver.address=127.0.0.1
+
+conf/neo4j-server.propertiesorg.neo4j.server.webserver.address=<ip_address>
+
+./bin/neo4j restart
+
+<Proxy *>
+Order Deny,Allow
+Deny from all
+Allow from <application_server>
+</Proxy>
+
+# Certificate location
+org.neo4j.server.webserver.https.cert.location=ssl/mycert.cert
+# Private key location
+org.neo4j.server.webserver.https.key.location=ssl/mycert.key
+org.neo4j.server.webserver.https.enabled=true
+org.neo4j.server.webserver.https.port=443
+
+ProxyPass /neo4j_root/data http://localhost:7474/db/data
+ProxyPassReverse /neo4j_root/data 
+http://localhost:7474/db/data
+
+org.neo4j.server.webserver.port=<random_port>
+
+---------------------------------------------------------------------------------------------------------------------------------------------------

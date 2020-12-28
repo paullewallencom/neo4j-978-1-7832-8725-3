@@ -1,0 +1,75 @@
+------------------------------------------------------------------------------------------------------------------------------------------------------
+Data modeling using Neo4j – moving from traditional SQL
+How to do it...
+SELECT Merchant.name,Product.name
+FROM Merchant
+INNER JOIN Product
+ON Merchant.id=Product.merchant;
+In the Neo4j the same would be expressed as:
+MATCH (m:Merchant)-[:`sells`]->(p:Product) 
+RETURN m,p
+------------------------------------------------------------------------------------------------------------------------------------------------------
+Binary search tree using Neo4j
+How to do it...
+CREATE (root { name: 'ROOT',value: 10 })
+CREATE (root)-[:LEFTCHILD]->(node1 {value : 5})
+CREATE (root)-[:RIGHTCHILD]->(node2 {value : 15})
+CREATE (node1)-[:LEFTCHILD]->(node3 {value : 3})
+CREATE (node1)-[:RIGHTCHILD]->(node4 {value : 7})
+CREATE (node2)-[:LEFTCHILD]->(node5 {value : 12})
+CREATE (node2)-[:RIGHTCHILD]->(node6 {value : 20})
+RETURN root
+
+MATCH (root)-[:LINK*0..]->(before),(after)-[:LINK*0..]->(root),(before)-[old:LINK]->(after)
+WHERE root.name = 'ROOT' AND (before.value < 25 OR before = root) AND 
+(25 < after.value OR after = root)
+CREATE UNIQUE (before)-[:LINK]->({ value:25 })-[:LINK]->(after)
+DELETE old
+
+MATCH (root { name: "ROOT" })-[:LEFTCHILD|RIGHTCHILD*0..]->()-[lastRel:LEFTCHILD|RIGHTCHILD]->element
+RETURN element
+ORDER BY element.value
+
+start n=node(*) 
+match n-[r*]->m
+where not(m-->()) 
+return distinct m;
+------------------------------------------------------------------------------------------------------------------------------------------------------
+Healthcare data modeling using Neo4j
+
+Patient – [HAVE] – Disease[s]
+Disease– [HAVE] – Symptom[s]
+Disease– [HAVE] – Treatment[s]
+Treatment – [HAVE] – Drug[s]
+Drug – [INTERACT] – Drug[s]
+
+MATCH (p:Patient)-[r:SHOWS_SYMPTOM]->(s:Symptom)<-[:HAS_SYMPTOM]-(d:Disease{name:"Cancer"})
+RETURN p.name,count(r)
+ORDER by count(r)
+
+MATCH (p:Patient{name:"John"})-[:HAS_ALLERGY]->(s:Food)-[r:IS_INGREDIENT_OF]->(p:Item{name:"Pizza"})
+RETURN count(r) AS Suitable
+
+
+MATCH (p:Patient{name:"John"})-[:HAS_TREATMENT]->(t:Treatment)-[r:HAS_DRUG]-(d:Drug)-[s:INTERACTS_WITH]-(n:Drug {name:"Abc"})
+RETURN count(r) AS Interacts
+------------------------------------------------------------------------------------------------------------------------------------------------------
+Travel data modeling using Neo4j
+How to do it...
+
+City – [HAVE] – Airport[s]
+Airport – [HAVE] – Flight[s]
+City – [ROUTE] – Cities
+Airport – [ROUTE] – Airport[s]
+
+MATCH (c:City{name:"Sydney"})-[r:ROUTE]->(a:Airport)
+RETURN c,a
+
+MATCH (n:City{name:"Sydney"})-[ROUTE*..2]->(a:Airport)-[]-(p:City) RETURN p
+
+MATCH x=allshortestPaths((n:City{name:"Bangkok"})-[ROUTE*..15]-(p:City{name:"Delhi"})) RETURN x
+
+MATCH p=(n:City{name:"bangkok"})-[rels:ROUTE*..15]->(p:City{name:"delhi"})
+RETURN p AS shortestPath, reduce(time=0, r in rels | time+r.time) AS totaltime
+------------------------------------------------------------------------------------------------------------------------------------------------------
+

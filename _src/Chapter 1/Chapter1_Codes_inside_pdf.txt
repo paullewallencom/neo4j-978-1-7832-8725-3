@@ -1,0 +1,195 @@
+---------------------------------------------------------------------------------------------------------------------------------------------
+Single node installation of Neo4j over Linux
+Getting ready
+$ wget  http://dist.neo4j.org/neo4j-community-2.2.0-M02-unix.tar.gz
+$ echo $JAVA_HOME
+
+How to do it...
+$ tar –zxvf neo4j-community-2.2.0-M02-unix.tar.gz
+$ ls
+$ cd <neo4j-community-2.2.0-M02>/bin/
+$ ./neo4j start
+$ ./neo4j status
+---------------------------------------------------------------------------------------------------------------------------------------------
+Single node installation of Neo4j over Windows
+Getting ready
+echo %JAVA_HOME%
+--------------------------------------------------------------------------------------------------------------------------------------------
+Single node installation of Neo4j over Mac OS X
+Getting ready
+$ wget  http://dist.neo4j.org/neo4j-community-2.2.0-M02-unix.tar.gz
+$ echo $JAVA_HOME
+
+How to do it...
+$ tar –zxvf neo4j-community-2.2.0-M02-unix.tar.gz
+$ ls
+$ cd <neo4j-community-2.2.0-M02>/bin/
+$ ./neo4j start
+$ ./neo4j status
+
+There's more…
+$ brew update
+$ brew install neo4j
+$ cd /usr/local/Cellar/neo4j/
+$ cd {NEO4J_VERSION}/libexec/
+--------------------------------------------------------------------------------------------------------------------------------------------
+Creating your first graph with Neo4j
+How to do it...
+${NEO4J_ROOT}/bin/neo4j start
+${NEO4J_ROOT}/bin/neo4j-shell
+neo4j-sh (0) $ mknode London
+neo4j-sh (0) $ mknode Paris
+neo4j-sh (0) $ mknode --cd --np "{'name':'London'}"
+neo4j-sh (0) $ mknode  --np "{'name':Paris}" -v
+
+neo4j-sh (London,2)$  mkrel -d OUTGOING -t CONNECTED <nodeid from preceding command> --rp "{'Airline':'X','Start-Time':'1400'}"
+neo4j-sh (London,2)$  ls
+*name =[London]
+(me)-[:CONNECTED]->(Paris,3)
+
+neo4j-sh (London,2)$  mkrel -d INCOMING -t CONNECTED <nodeid> --rp "{'Airline':'Y','Start-Time':'2300'}"
+neo4j-sh (London,2)$  cd 3
+neo4j-sh (Paris,3)$  ls
+*name =[Paris]
+(me)<-[:CONNECTED]-(London,2)
+
+There's more…
+$ ./neo4j stop
+$ rm –rf data/graph.db
+
+-------------------------------------------------------------------------------------------------------------------------------------------
+Importing data from the CSV format to Neo4j
+How to do it...
+Using a batch importer
+$ wget https://dl.dropboxusercontent.com/u/14493611/batch_importer_22.zip
+$ unzip batch_importer_22.zip
+# Download sample nodes.csv and rels.csv from the github repo under sample
+$ import.sh test.db nodes.csv rels.csv
+$ cp test.db ${NEO4J_ROOT}/data/graph.db
+
+Using custom scripts
+#Bash Script for importing nodes
+NEO4J_ROOT="/var/lib/neo4j"
+while read LINE
+do
+  name=`echo $LINE | awk -F "," '{print $3}'`
+  ${NEO4J_ROOT}/bin/neo4j-shell -c mknode --np \"{'name':$name}\" 
+-v
+done
+
+#Bash Script for creating relationships
+#Format of csv should be startnode,endnode,type,direction
+NEO4J_ROOT="/var/lib/neo4j"
+IFS=","
+while read LINE
+do
+  echo $LINE
+  array=($LINE)
+  ${NEO4J_ROOT}/bin/neo4j-shell -c cd -a ${array[0]} mkrel -d 
+${array[3]} -t ${array[2]} ${array[1]}
+done
+
+#Sample Python code to create nodes from csv file
+import csv
+from py2neo import neo4j, cypher
+from py2neo import node, rel
+graph_db = neo4j.Graph("http://localhost:7474/db/data/")
+ifile = open('nodes.csv', "rb")
+reader = csv.reader(ifile)
+rownum = 0
+for row in reader:
+  nodes = graph_db.create({"name":row[2]})
+ifile.close()
+
+records = [(101, "A"), (102, "B"), (103, "C")]
+graph_db = neo4j.Graph ("http://localhost:7474/db/data/")
+batch = neo4j.WriteBatch(graph_db)
+for emp_no, name in records:
+  batch.get_or_create_indexed_node("Employees", "emp_no", emp_no,
+{
+  "emp_no": emp_no, "name": name
+})
+nodes = batch.submit()
+--------------------------------------------------------------------------------------------------------------------------------------------
+Importing data from the Geoff format to Neo4j
+How it works...
+(alice {"name":"Alice"})
+(bob {"name":"Bob"})
+(carol {"name":"Carol"})
+(alice)<-[:KNOWS]->(bob)<-[:KNOWS]->(carol)<-[:KNOWS]->(alice)
+
+
+Bulk load
+curl -X POST http://localhost:7474/load2neo/load/geoff -d '(a)<-
+[:KNOWS]->(b)'
+--------------------------------------------------------------------------------------------------------------------------------------------
+Importing data from OrientDB to Neo4j
+How to do it...
+Exporting in the JSON format
+$ ./console.sh
+ orientdb> export database graph.json
+
+ "records": [{
+            "@type": "d", "@rid": "#12:476", "@version": 0, "@class": "Whiz",
+            "id": 476,
+            "date": "2011-12-09 00:00:00:000",
+            "text": "Los a went chip, of was returning cover, In the",
+            "@fieldTypes": "date=t"
+          },{
+            "@type": "d", "@rid": "#12:477", "@version": 0, "@class": "Whiz",
+            "id": 477,
+            "date": "2011-12-09 00:00:00:000",
+            "text": "He in office return He inside electronics for $500,000 Jay",
+            "@fieldTypes": "date=t"
+          }
+
+Using Gremlin
+gremlin> graph = new OrientGraph("local:<path_of_db> ");
+gremlin> graph.saveGraphML('graph.xml');
+gremlin> graph = new Neo4jGraph('data/graph.db');
+gremlin> graph.loadGraphML('graph.xml');
+
+gremlin> graph = new OrientGraph("local: <path_of_db> ");
+gremlin> graph.V # Get All Vertices
+gremlin> graph.E # Get All Edges
+-----------------------------------------------------------------------------------------------------------------------------------------
+Importing data from InfiniteGraph to Neo4j
+How to do it...
+gremlin> import com.tinkerpop.blueprints.impls.ig.*
+gremlin> graph = new IGGraph("neo_data.boot")
+gremlin> graph.V # Gives all the nodes
+gremlin> graph.E # Gives all the edges
+gremlin> graph.loadGraphML('graph.xml');
+gremlin> graph = new Neo4jGraph('neo/graph.db');
+gremlin> graph.loadGraphML('graph.xml');
+-----------------------------------------------------------------------------------------------------------------------------------------
+Importing data from the DEX graph database to Neo4j
+How to do it...
+DefaultExport graph = new DefaultExport();
+g.export("dex_export.graphml", ExportType.YGraphML, graph);
+
+gremlin> graph = new DexGraph(".neo/data.dex");
+gremlin> graph.saveGraphML('graph.xml');
+gremlin> graph = new Neo4jGraph('neo/graph.db');
+gremlin> graph.loadGraphML('graph.xml');
+------------------------------------------------------------------------------------------------------------------------------------------
+Common configurations of Neo4j
+How to do it...
+enable_remote_shell = true
+enable_remote_shell_port=1234
+
+org.neo4j.server.webserver.address=0.0.0.0
+org.neo4j.server.webserver.port=7473
+./neo4j restart
+-----------------------------------------------------------------------------------------------------------------------------------------
+Running multiple instances of Neo4j over a single machine
+How to do it...
+org.neo4j.server.database.location=data/graph.db
+org.neo4j.server.webserver.port=5678
+./neo4j restart
+-----------------------------------------------------------------------------------------------------------------------------------------
+Building Neo4j from the source
+How to do it...
+git clone https://github.com/neo4j/neo4j.git
+cd neo4j
+mvn clean install

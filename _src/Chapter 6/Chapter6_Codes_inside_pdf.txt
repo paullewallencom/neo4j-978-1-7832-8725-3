@@ -1,0 +1,196 @@
+---------------------------------------------------------------------------------------------------------------------------------------------------
+Installing the Neo4j spatial extension
+Getting ready
+apt-get install maven (Debian Systems)
+yum install apache-maven (Redhat/Centos Systems)
+For installing on Windows based system, please refer the URL:
+https://maven.apache.org/guides/getting-started/windows-prerequisites.html
+---------------------------------------------------------------------------------------------------------------------------------------------------
+How to do it...
+git clone git://github.com/neo4j/spatial spatial
+
+cd spatial
+
+mvn clean install
+
+unzip target/neo4j/neo4j-spatial-0.11-SNAPSHOT-server-plugin.zip $NEO4J_ROOT_DIR/plugins
+
+$NEO4J_ROOT_DIR/bin/neo4j restart
+
+curl –L http://<neo4j_server_ip>:<port>/db/data
+
+curl --user neo4j:<password> http://localhost:7474/db/data/
+---------------------------------------------------------------------------------------------------------------------------------------------------
+Importing the ESRI shapefiles
+Getting ready
+$NEO4J_ROOT_DIR/bin/neo4j restart
+---------------------------------------------------------------------------------------------------------------------------------------------------
+How to do it...
+wget http://biogeo.ucdavis.edu/data/diva/adm/AFG_adm.zip
+unzip AFG_adm.zip
+mv AFG_adm1.* /data
+
+GraphDatabaseService esri_database = new GraphDatabaseFactory().newEmbeddedDatabase(storeDir);
+try {
+    ShapefileImporter importer = new ShapefileImporter(esri_database);
+importer.importFile("/data/AFG_adm1.shp", "layer_afganistan");
+        } finally {
+            esri_database.shutdown();
+}
+
+File dir = new File("/data");
+      FilenameFilter filter = new FilenameFilter() {
+          public boolean accept(File dir, String name) {
+      return name.endsWith(".shp");
+  }};
+
+File[] listOfFiles = dir.listFiles(filter);
+ for (final File fileEntry : listOfFiles) {
+     System.out.println("FileEntry Directory "+fileEntry);
+   try {
+   importer.importFile(fileEntry.toString(), 
+"layer_afganistan");
+} catch(Exception e){
+   esri_database.shutdown();
+}}
+
+---------------------------------------------------------------------------------------------------------------------------------------------------
+Importing the OpenStreetMap files
+Getting ready
+$NEO4J_ROOT_DIR/bin/neo4j restart
+---------------------------------------------------------------------------------------------------------------------------------------------------
+How to do it...
+wget http://download.geofabrik.de/africa-latest.osm.bz2
+bunzip2 africa-latest.osm.bz2
+mv africa-latest.osm /data
+
+OSMImporter importer = new OSMImporter("africa");
+try {
+    importer.importFile(osm_database, "/data/botswana-latest.osm", false, 5000, true);
+} catch(Exception e){
+    osm_database.shutdown();
+}
+importer.reIndex(osm_database,10000);
+
+File dir = new File("/data");
+     FilenameFilter filter = new FilenameFilter() {
+         public boolean accept(File dir, String name) {
+     return name.endsWith(".osm");
+ }};
+ File[] listOfFiles = dir.listFiles(filter);
+ for (final File fileEntry : listOfFiles) {
+     System.out.println("FileEntry Directory "+fileEntry);
+   try {
+importer.importFile(osm_database, fileEntry.toString(), false, 5000, true);
+importer.reIndex(osm_database,10000);
+} catch(Exception e){
+   osm_database.shutdown();
+}
+---------------------------------------------------------------------------------------------------------------------------------------------------
+Importing the data using REST API
+Getting ready
+$NEO4J_ROOT_DIR/bin/neo4j restart
+---------------------------------------------------------------------------------------------------------------------------------------------------
+How to do it...
+# Create geom index
+url = http://<neo4j_server_ip>:<port>/db/data/index/node/
+payload= {
+    "name" : "geom",
+    "config" : {
+        "provider" : "spatial",
+        "geometry_type" : "point",
+        "lat" : "lat",
+        "lon" : "lon"
+    }
+}
+
+url = "http:// <neo4j_server_ip>:<port>/db/data/node"
+payload = {'lon': 38.6, 'lat': 67.88, 'name': 'abc'}
+req = urllib2.Request(url)
+req.add_header('Content-Type', 'application/json')
+response = urllib2.urlopen(req, json.dumps(payload))
+node = json.loads(response.read())['self']
+
+#add node to geom index
+url = "http:// <neo4j_server_ip>:<port>/db/data/index/node/geom"
+payload = {'value': 'dummy', 'key': 'dummy', 'uri': node}
+req = urllib2.Request(url)
+req.add_header('Content-Type', 'application/json')
+response = urllib2.urlopen(req, json.dumps(payload))
+print response.read()
+---------------------------------------------------------------------------------------------------------------------------------------------------
+How it works...
+http://<neo4j_server_ip>:<port>/db/data/index/node/
+
+http://<neo4j_server_ip>:<port>/db/data/node
+
+http://<neo4j_server_ip>:<port>/db/data/index/node/geom
+---------------------------------------------------------------------------------------------------------------------------------------------------
+Creating point layer using REST API
+Getting ready
+$NEO4J_ROOT_DIR/bin/neo4j restart
+---------------------------------------------------------------------------------------------------------------------------------------------------
+How to do it...
+"layer" : "geom",
+"lat"   : "lat" ,
+"lon"   : "lon",url = "http:// <neo4j_server_ip>:<port>//db/data/ext/SpatialPlugin/graphdb/addSimplePointlayer
+payload= {
+"layer" : "geom",
+"lat"   : "lat" ,
+"lon"   : "lon",
+}
+r = requests.post(url, data=json.dumps(payload), headers=headers)
+---------------------------------------------------------------------------------------------------------------------------------------------------
+Finding geometries within the bounding box
+Getting ready
+$NEO4J_ROOT_DIR/bin/neo4j restart
+---------------------------------------------------------------------------------------------------------------------------------------------------
+How to do it...
+"minx" : 0.0,
+"maxx" : 100.0,
+"miny" : 0.0,
+"maxy" : 100.0
+url = "http://<neo4j_server_ip>:<port>//db/data/ext/SpatialPlugin/graphdb
+payload= {
+"layer" : "geom",
+"minx" : 0.0,
+"maxx" : 100.3,
+"miny" : 0.0,
+"maxy" : 100.0
+}
+r = requests.post(url, data=json.dumps(payload), headers=headers)
+---------------------------------------------------------------------------------------------------------------------------------------------------
+Finding geometries within a distance
+Getting ready
+$NEO4J_ROOT_DIR/bin/neo4j restart
+---------------------------------------------------------------------------------------------------------------------------------------------------
+How to do it...
+"pointX" : -116.67,
+"pointY" : 46.89,
+"distanceinKm" : 500,
+url = "http://<neo4j_server_ip>:<port>//db/data/ext/SpatialPlugin/graphdb/findGeometriesWithinDistance
+payload= {
+"layer" : "geom",
+"pointY" : 46.8625,
+"pointX" : -114.0117,
+"distanceInKm" : 500,
+}
+r = requests.post(url, data=json.dumps(payload), headers=headers)
+---------------------------------------------------------------------------------------------------------------------------------------------------
+Finding geometries within a distance using Cypher
+Getting ready
+$NEO4J_ROOT_DIR/bin/neo4j restart
+---------------------------------------------------------------------------------------------------------------------------------------------------
+How to do it...
+information:
+"pointX" : -116.67,
+"pointY" : 46.89,
+"distanceinKm" : 500,
+url = "http:// <neo4j_server_ip>:<port>//db/data/cypher
+payload= {
+"query" : "START n=node:geom('withinDistance:[46.9163, -114.0905, 500.0]') RETURN n"
+}
+r = requests.post(url, data=json.dumps(payload), headers=headers)
+
+---------------------------------------------------------------------------------------------------------------------------------------------------
+

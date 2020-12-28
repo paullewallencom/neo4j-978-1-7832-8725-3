@@ -1,0 +1,42 @@
+------------------------------------------------------------------------------------------------------------------------------------------------
+Visualization using the Neo4j console
+How to do it...
+// What is related, and how
+MATCH (a)-[r]->(b)
+WHERE labels(a) <> [] AND labels(b) <> []
+RETURN DISTINCT head(labels(a)) AS This, type(r) as To, 
+head(labels(b)) AS That
+LIMIT 10
+
+node.Airport {
+color: #30B6AF;
+border-color: #46A39E;
+text-color-internal: #FFFFFF;
+diameter: 50px;
+border-width: 2px;
+caption: '{id}';
+font-size: 10px;
+}
+
+node.Airport {
+color: #FF6C7C;
+border-color: #EB5D6C;
+text-color-internal: #FFFFFF;
+diameter: 80px;
+border-width: 2px;
+caption: ' {city}';
+font-size: 10px;
+}
+------------------------------------------------------------------------------------------------------------------------------------------------
+The Neo4j Graph with Gephi
+Getting ready
+g = new Neo4jGraph('data/graph.db');
+g.saveGraphML('Mygraph.gml');
+------------------------------------------------------------------------------------------------------------------------------------------------
+The Neo4j Graph with Gephi
+Getting ready
+g = new Neo4jGraph('data/graph.db');
+g.saveGraphML('Mygraph.gml');
+------------------------------------------------------------------------------------------------------------------------------------------------
+
+

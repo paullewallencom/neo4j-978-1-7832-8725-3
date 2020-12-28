@@ -1,0 +1,175 @@
+
+Creating your first node and relationship using Cypher
+How to do it...
+CREATE (JFK:Airport { name:'JF Kennedy Airport', city:'New 
+York' }),(AUS:Airport { name:'Austin-Bergstrom 
+International', city:'Austin' })
+
+CREATE (flight1:Flight { flight_number:'BG45', 
+month:'August' })
+
+MATCH (JFK:Airport { name:'JF Kennedy Airport'})
+MATCH (AUS:Airport { name:'Austin-Bergstrom 
+International'})
+MATCH (flight1:Flight { flight_number:'BG45'})
+
+CREATE (flight1)-[:ORIGIN]->(JFK),(flight1)-[:DESTINATION]->(AUS)
+
+CREATE (JFK:Airport { name:'JF Kennedy Airport', city:'New York' 
+}),(AUS:Airport { name:'Austin-Bergstrom International', 
+city:'Austin' })
+
+CREATE (flight1)-[:ORIGIN]->(JFK),(flight1)-[:DESTINATION]->(AUS)
+--------------------------------------------------------------------------------------------------------------------------------------------
+Querying nodes and relationships using Cypher
+How to do it...
+START n = node(*) RETURN COUNT(n)
+MATCH (n)-[r]-(m) RETURN COUNT(r)
+MATCH (n) RETURN DISTINCT LABELS(n)
+MATCH n-[r]-() RETURN DISTINCT TYPE(r)
+MATCH (n) WHERE NOT (n)-[]-() RETURN n
+MATCH (n) where has(n.name) RETURN n
+MATCH (n)-[:ORIGIN]-() RETURN DISTINCT n
+
+How it works...
+START n = node(*) RETURN COUNT(n)
+start n = node(*) return count(n)
+--------------------------------------------------------------------------------------------------------------------------------------------
+Deleting data from Neo4j using the Cypher query
+How to do it...
+MATCH (n)-[r]-() DELETE r
+
+MATCH (n) DELETE n
+
+MATCH (n) WHERE n.city = "Atlanta" DELETE n
+# You have to delete all relationships from that node before deleting that node
+
+MATCH n-[r:ORIGIN]-() DELETE r
+
+MATCH (n) REMOVE n.city
+# To specify a particular node specify either node id in start or where clause
+
+MATCH (n) REMOVE n:Airport
+# To specify a particular node specify either node id in start or where clause
+--------------------------------------------------------------------------------------------------------------------------------------------
+Boolean operators with Cypher
+How to do it...
+MATCH (o)<-[:`ORIGIN`]-(f)-[:`DESTINATION`]->(d) where 
+o.city = "Atlanta" AND d.city = "Dallas/Fort Worth" return 
+o,f,d
+
+MATCH (o)<-[:ORIGIN]-(f) where o.city = "Atlanta" OR o.city = "Dallas/Fort Worth" return o,f
+
+MATCH (o)<-[:`ORIGIN`]-(f) WHERE NOT o.city = "Atlanta" 
+RETURN o
+
+MATCH (o)<-[:`ORIGIN`]-(f)-[:`DELAYED_BY`]-(r) where 
+(o.city = "Atlanta" OR o.city = "Dallas/Fort Worth")AND 
+r.name = "Late Aircraft"  return o,f
+--------------------------------------------------------------------------------------------------------------------------------------------
+Changing the order of results with Cypher
+How to do it...
+MATCH (f)-[r:`DELAYED_BY`]->(x) 
+RETURN f.flight_number,r.time,x.name 
+ORDER BY r.time DESC
+
+MATCH (f)-[r:ORIGIN]->(x) 
+RETURN DISTINCT x.name 
+ORDER BY x.name
+
+MATCH (f)-[r:ORIGIN]->(x) 
+RETURN DISTINCT x.name,x.city 
+ORDER BY x.city,x.name
+--------------------------------------------------------------------------------------------------------------------------------------------
+Limiting and skipping results with Cypher
+How to do it...
+MATCH (f)-[r:DELAYED_BY]->(x) 
+RETURN f.flight_number,r.time,x.name 
+ORDER BY r.time DESC LIMIT 3
+
+MATCH (f)-[r:DELAYED_BY]->(x) 
+RETURN f.flight_number,r.time,x.name 
+ORDER BY r.time DESC SKIP 3
+
+MATCH (f)-[r:DELAYED_BY]->(x) 
+RETURN f.flight_number,r.time,x.name 
+ORDER BY r.time DESC SKIP 2 LIMIT 1
+--------------------------------------------------------------------------------------------------------------------------------------------
+Regular expressions with Cypher
+How to do it...
+MATCH (n) 
+WHERE "Airport" in LABELS(n) AND n.name =~ '^H.*' 
+RETURN n
+
+MATCH (n:Airport)
+
+MATCH (n) 
+WHERE "Airport" in LABELS(n) AND n.name =~ 
+'(?i)^H.*' 
+RETURN n
+
+MATCH (n) 
+WHERE "Airport" in LABELS(n) AND n.city =~ 
+'.?.?.?.?.?.?.?' 
+RETURN n
+
+MATCH (n:Airport)
+WHERE n.city =~ '.{7}' RETURN n
+
+MATCH (n)-[r:`DELAYED_BY`]->(x)
+WHERE str(r.time) =~ '.?' 
+RETURN n.flight_number,r.time
+--------------------------------------------------------------------------------------------------------------------------------------------
+Aggregation with Cypher
+How to do it...
+START n = node(*) 
+MATCH n-[r]-() 
+RETURN n, count(r) as rel_count 
+ORDER BY rel_count desc
+
+START n = node(*)
+MATCH (n)-[r:`ORIGIN`]->(o) 
+RETURN o.name,count(r) as rel_count 
+ORDER BY rel_count desc
+--------------------------------------------------------------------------------------------------------------------------------------------
+Combining results with Cypher
+How to do it...
+MATCH (n:Airport) 
+RETURN n.name AS name 
+UNION ALL MATCH (n:Flight) 
+RETURN n.flight_number AS name
+
+MATCH (n:Airport) 
+RETURN n.name AS name 
+UNION  MATCH (n:Flight) 
+RETURN n.flight_number AS name
+--------------------------------------------------------------------------------------------------------------------------------------------
+Paths in Cypher along with the shortest route
+Getting ready
+CREATE (ATL:Airport {  city:'Atlanta' }),(ORD:Airport { 
+city:'Chicago' }),(LAX:Airport { city:'Los Angeles' 
+}),(DFW:Airport { city:'Dallas/Fort Worth' }),(AUS:Airport { 
+city:'Austin' })
+
+CREATE (ATL)-[:ROUTE { time:22 }]->(AUS),(AUS)-[:ROUTE { time:35 
+}]->(LAX),(ATL)-[:ROUTE { time:40 }]->(DFW),(DFW)-[:ROUTE { 
+time:34 }]->(LAX),(ORD)-[:ROUTE { time:13 }]->(ATL),(LAX)-[:ROUTE 
+{ time:63 }]->(ORD)
+
+How to do it...
+START n = node(*) 
+MATCH p = (n)-[r:ROUTE*..]->(m) 
+WHERE n.city = "Atlanta" AND m.city = "Los Angeles" 
+RETURN p,length(p)
+
+START n=node(*) 
+MATCH p = (n)-[r:ROUTE*1..2]->(m)  
+WHERE n.city = "Atlanta" RETURN p,length(p)
+
+START n=node(*) 
+MATCH p = (n)-[r:ROUTE*..]->(m) 
+WHERE n.city = "Atlanta" AND m.city = "Los Angeles" 
+RETURN p,reduce(total = 0, x in relationships(p)| total + x.time) as tt ORDER by tt asc LIMIT 1
+--------------------------------------------------------------------------------------------------------------------------------------------
+
+

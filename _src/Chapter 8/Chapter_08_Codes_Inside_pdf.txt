@@ -1,0 +1,49 @@
+----------------------------------------------------------------------------------------------------------------------------------------------------
+HealthCare with Neo4j
+How to do it...
+
+START n=node:PatientLocation('withinDistance:[53.489271, -2.246704, 5.0]') where n.speciality = “orphopedics” return n
+
+MATCH (node {id:10})-[:IS_TAKING]->(drug)-[:INTERACTS_WITH]-(new_drug)
+WHERE new_drug.name = "aspirin"
+RETURN drug.name
+
+MATCH (patient_a { name: 'Joe' })-[:suffers_from]->(disease)<-[:suffers_from]-(patient_b)
+RETURN patient_b.name, count(disease) ORDER BY count(disease)
+----------------------------------------------------------------------------------------------------------------------------------------------------
+Social Network Industry with Neo4j
+How to do it...
+
+START n=node:UserLocation('withinDistance:[53.489271, -2.246704, 5.0]') 
+WITH n
+MATCH (n)-[:LIKES]-[interest]
+WHERE interest.name = “football”
+RETURN n
+
+START n=node:UserLocation('withinDistance:[53.489271, -2.246704, 5.0]') 
+MATCH (n)-[:FRIENDS]-[me]
+RETURN n
+
+MATCH (user_a { name: 'Joe' })-[:LIKES]->(stuff)<-[:likes]-(user_b)
+RETURN user_b.name, count(stuff)
+----------------------------------------------------------------------------------------------------------------------------------------------------
+Travel Industry with Neo4j
+How to do it...
+
+START place=node:UserLocation('withinDistance:[53.489271, -2.246704, 5.0]') 
+WITH place
+MATCH (place)-[:TYPE]-[type]
+WHERE type.name = “beach”
+
+START n=node:UserLocation('withinDistance:[53.489271, -2.246704, 100.0]') 
+MATCH (n)-[:HAS_WEATHER]-[weather]
+WHERE weather.type = “snowfall”
+RETURN n
+
+MATCH (src:Place { name:"london" }),(dst:Place { name:"hawai" }),p = shortestPath((src)-[*..15]-(dst))
+RETURN p
+
+MATCH (brand { name: 'xyz' })-[:is_brand]->(clothes {type: ‘pants’)<-[:color]-(color {color: ‘black})
+RETURN clothes
+
+----------------------------------------------------------------------------------------------------------------------------------------------------
